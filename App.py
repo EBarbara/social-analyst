@@ -1,35 +1,31 @@
-import locale
-from datetime import datetime
-
+from PreprocessingModule import PreprocessingModule
 from TwitterStreamingCSVModule import TwitterStreamingModule
 from VectorizingModule import VectorizingModule
-from pyspark.ml.feature import Tokenizer
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, window, unix_timestamp, format_string
-from pyspark.sql.types import StringType, TimestampType
-
-locale.setlocale(locale.LC_TIME, "us")
+from pyspark.sql.functions import udf, window
 
 if __name__ == "__main__":
-    # vectorizingModule = VectorizingModule("glove.twitter.27B.25d.txt")
-
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
-    # vectorize_spark = udf(vectorizingModule.vectorize, StringType())
     streamingModule = TwitterStreamingModule(spark)
+    preprocessingModule = PreprocessingModule(inputCol="text", outputCol="words")
+    # vectorizingModule = VectorizingModule("glove.twitter.27B.25d.txt")
 
     tweets = streamingModule.run()
 
-    tokenizer = Tokenizer(inputCol="text", outputCol="words")
-    tweets_tokenized = tokenizer.transform(tweets)
-    window_tweets = tweets_tokenized.groupBy(
-        window(tweets_tokenized.time, "2 hours", "1 minute"),
-        tweets_tokenized.id,
-        tweets_tokenized.coordinates,
-        tweets_tokenized.location,
-        tweets_tokenized.words
+    #preprocessing
+    tweets_filtered = preprocessingModule.run(tweets)
+
+    # vectorize_spark = udf(vectorizingModule.vectorize, StringType())
+
+    window_tweets = tweets_filtered.groupBy(
+        window(tweets_filtered.time, "2 hours", "1 minute"),
+        tweets_filtered.id,
+        tweets_filtered.coordinates,
+        tweets_filtered.location,
+        tweets_filtered.words
     )
 
     # tweet_vectorized = tweets.withColumn('vector', vectorize_spark("text"))
 
-    query = tweets_tokenized.writeStream.outputMode("append").format("console").start()
+    query = tweets_filtered.writeStream.outputMode("append").format("console").start()
     query.awaitTermination()
