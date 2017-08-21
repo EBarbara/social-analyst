@@ -15,23 +15,21 @@ if __name__ == "__main__":
 
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
     # vectorize_spark = udf(vectorizingModule.vectorize, StringType())
-    timestamper = udf(lambda x: datetime.strptime(x, '%a %b %d %H:%M:%S +0000 %Y'), TimestampType())
     streamingModule = TwitterStreamingModule(spark)
 
     tweets = streamingModule.run()
 
     tokenizer = Tokenizer(inputCol="text", outputCol="words")
     tweets_tokenized = tokenizer.transform(tweets)
-    tweets_timed = tweets_tokenized.withColumn("timestamp", timestamper("time"))
-    window_tweets = tweets_timed.groupBy(
-        window(tweets_timed.timestamp, "2 hours", "1 minute"),
-        tweets_timed.id,
-        tweets_timed.coordinates,
-        tweets_timed.location,
-        tweets_timed.words
+    window_tweets = tweets_tokenized.groupBy(
+        window(tweets_tokenized.time, "2 hours", "1 minute"),
+        tweets_tokenized.id,
+        tweets_tokenized.coordinates,
+        tweets_tokenized.location,
+        tweets_tokenized.words
     )
 
     # tweet_vectorized = tweets.withColumn('vector', vectorize_spark("text"))
 
-    query = window_tweets.writeStream.outputMode("append").format("console").start()
+    query = tweets_tokenized.writeStream.outputMode("append").format("console").start()
     query.awaitTermination()

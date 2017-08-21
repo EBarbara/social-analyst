@@ -1,4 +1,4 @@
-from pyspark.sql.types import StructType
+from pyspark.sql.types import *
 
 
 class TwitterStreamingModule:
@@ -6,16 +6,15 @@ class TwitterStreamingModule:
         self.session = spark_session
         self.folder = "C:\\Users\\Estevan\\PycharmProjects\\Mining\\tweets"
         self.schema = StructType() \
-            .add("id", "string") \
-            .add("time", "string") \
-            .add("coordinates", "string") \
-            .add("location", "string") \
-            .add("text", "string")
+            .add("id", StringType()) \
+            .add("time", TimestampType()) \
+            .add("coordinates", StringType()) \
+            .add("location", StringType()) \
+            .add("text", StringType())
 
     def run(self):
         return self.session.readStream\
-            .option("sep", ";")\
-            .option('includeTimestamp', 'true')\
+            .option("sep", ';')\
             .schema(self.schema)\
             .csv(self.folder)
 
