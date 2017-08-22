@@ -1,31 +1,34 @@
-from PreprocessingModule import PreprocessingModule
-from TwitterStreamingCSVModule import TwitterStreamingModule
-from VectorizingModule import VectorizingModule
+import PreprocessingModule
+import TrainingModule
+# import TwitterStreamingModule
+import TwitterStreamingFileModule as TwitterStreamingModule
+import VectorizingModule
+from pyspark import SQLContext
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import udf, window
+from pyspark.streaming import StreamingContext
 
 if __name__ == "__main__":
+    # start Spark Context
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
-    streamingModule = TwitterStreamingModule(spark)
-    preprocessingModule = PreprocessingModule(inputCol="text", outputCol="words")
-    # vectorizingModule = VectorizingModule("glove.twitter.27B.25d.txt")
+    sc = spark.sparkContext
+    ssc = StreamingContext(spark.sparkContext, 5)
 
-    tweets = streamingModule.run()
+    # load word2vec model
+    sqlContext = SQLContext(sc)
+    model = sqlContext.read.parquet("training_data/trained_word2vec_model/data").alias("lookup")
+    word2vec_model = model.rdd.collectAsMap()
 
-    #preprocessing
-    tweets_filtered = preprocessingModule.run(tweets)
+    # train clusterer
+    k_means_model = TrainingModule.run(sc, ssc, "training_data/training_tweets.txt", word2vec_model)
 
-    # vectorize_spark = udf(vectorizingModule.vectorize, StringType())
+    # streaming and preprocessing
+    tweets = TwitterStreamingModule.run(ssc)
+    tweets_filtered = PreprocessingModule.run(tweets)
+    tweets_vectorized = VectorizingModule.run(tweets_filtered, word2vec_model)
+    tweets_vectorized.pprint()
 
-    window_tweets = tweets_filtered.groupBy(
-        window(tweets_filtered.time, "2 hours", "1 minute"),
-        tweets_filtered.id,
-        tweets_filtered.coordinates,
-        tweets_filtered.location,
-        tweets_filtered.words
-    )
 
-    # tweet_vectorized = tweets.withColumn('vector', vectorize_spark("text"))
 
-    query = tweets_filtered.writeStream.outputMode("append").format("console").start()
-    query.awaitTermination()
+    ssc.start()
+    ssc.awaitTermination()
+

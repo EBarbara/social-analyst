@@ -27,7 +27,7 @@ def extract_json(json_origin):
 
 
 def run(context):
-    lines = context.socketTextStream("localhost", 9999)
+    lines = context.textFileStream("C:\\Users\\Estevan\\PycharmProjects\\Mining\\tweets")
     tweets = lines.map(lambda line: extract_json(line)) \
         .filter(lambda json: json is not None) \
         .map(lambda json: (json["id"],
@@ -38,4 +38,3 @@ def run(context):
         .filter(lambda tweet: tweet[2] != 0 or tweet[3] != 0)
 
     return tweets
-
