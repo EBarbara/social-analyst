@@ -29,6 +29,7 @@ def run(tweet_stream):
                                                       tweet[1],
                                                       tweet[2],
                                                       tweet[3],
+                                                      tweet[4],
                                                       tokenize_and_filter(tweet[4])))
 
     return filtered_stream

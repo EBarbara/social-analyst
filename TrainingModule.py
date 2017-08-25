@@ -4,7 +4,7 @@ import VectorizingModule
 from pyspark.mllib.linalg import Vectors
 
 
-def run(spark_context, streaming_context, training_file, word2vec_model):
+def run(spark_context, streaming_context, training_file, word2vec_model, dimensions):
     lines = spark_context.textFile(training_file)
     training_raw = lines.map(lambda line: TwitterStreamingModule.extract_json(line)) \
         .filter(lambda json: json is not None) \
@@ -17,6 +17,6 @@ def run(spark_context, streaming_context, training_file, word2vec_model):
     training_queue = [training_raw]
     training_stream = streaming_context.queueStream(training_queue)
     training_filtered = PreprocessingModule.run(training_stream)
-    training_vectorized = VectorizingModule.run(training_filtered, word2vec_model)
+    training_vectorized = VectorizingModule.run(training_filtered, word2vec_model, dimensions)
     training_data = training_vectorized.map(lambda tweet: (Vectors.dense(tweet[5].tolist())))
     return training_data

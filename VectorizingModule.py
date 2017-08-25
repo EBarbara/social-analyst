@@ -22,8 +22,8 @@ def load_word2vec():
     pass
 
 
-def doc2vec(words, model):
-    vector = numpy.zeros(10)
+def average_word_vector(words, model, dimensions):
+    vector = numpy.zeros(dimensions)
     word_count = 0
 
     for word in words:
@@ -32,16 +32,15 @@ def doc2vec(words, model):
             word_count += 1
 
     if word_count == 0:
-        print("Zeroed vector from words {0} {1}".format(words, vector.tolist()))
         return vector
     return vector / float(word_count)
 
 
-def run(tweet_stream, model):
+def run(tweet_stream, model, dimensions):
     vectorized_data = tweet_stream.map(lambda tweet: (tweet[0],
                                                       tweet[1],
                                                       tweet[2],
                                                       tweet[3],
                                                       tweet[4],
-                                                      doc2vec(tweet[4], model)))
+                                                      average_word_vector(tweet[5], model, dimensions)))
     return vectorized_data
