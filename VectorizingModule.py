@@ -31,6 +31,9 @@ def doc2vec(words, model):
             vector += model[word]
             word_count += 1
 
+    if word_count == 0:
+        print("Zeroed vector: {0}".format(vector.tolist()))
+        return vector
     return vector / float(word_count)
 
 

@@ -18,6 +18,7 @@ def run(spark_context, streaming_context, training_file, word2vec_model):
     training_stream = streaming_context.queueStream(training_queue)
     training_filtered = PreprocessingModule.run(training_stream)
     training_vectorized = VectorizingModule.run(training_filtered, word2vec_model)
-    training_data = training_vectorized.map(lambda tweet: [tweet[2], tweet[3]] + tweet[5].tolist())
-    model = StreamingKMeans(k=15, decayFactor=0.6).setRandomCenters(3, 1.0, 0)
-    model.trainOn(training_data)
+    training_data = training_vectorized.map(lambda tweet: tweet[5].tolist())
+    k_means_model = StreamingKMeans(k=10).setRandomCenters(3, 1.0, 0)
+    k_means_model.trainOn(training_data)
+    return k_means_model
