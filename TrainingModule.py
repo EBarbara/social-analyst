@@ -1,7 +1,7 @@
 import PreprocessingModule
 import TwitterStreamingModule
 import VectorizingModule
-from pyspark.mllib.clustering import StreamingKMeans
+from pyspark.mllib.linalg import Vectors
 
 
 def run(spark_context, streaming_context, training_file, word2vec_model):
@@ -18,7 +18,5 @@ def run(spark_context, streaming_context, training_file, word2vec_model):
     training_stream = streaming_context.queueStream(training_queue)
     training_filtered = PreprocessingModule.run(training_stream)
     training_vectorized = VectorizingModule.run(training_filtered, word2vec_model)
-    training_data = training_vectorized.map(lambda tweet: tweet[5].tolist())
-    k_means_model = StreamingKMeans(k=10).setRandomCenters(3, 1.0, 0)
-    k_means_model.trainOn(training_data)
-    return k_means_model
+    training_data = training_vectorized.map(lambda tweet: (Vectors.dense(tweet[5].tolist())))
+    return training_data

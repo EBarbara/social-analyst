@@ -1,4 +1,5 @@
 import PreprocessingModule
+import TrainingModule
 # import TwitterStreamingModule
 import TwitterStreamingFileModule as TwitterStreamingModule
 import VectorizingModule
@@ -21,6 +22,10 @@ if __name__ == "__main__":
     sqlContext = SQLContext(sc)
     model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
     word2vec_model = model.rdd.collectAsMap()
+
+    # preload k-means centers
+    training_data = TrainingModule.run(sc, ssc, "training_data/training_tweets.txt", word2vec_model)
+    k_means_model.trainOn(training_data)
 
     # streaming and preprocessing
     tweets = TwitterStreamingModule.run(ssc)
