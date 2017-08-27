@@ -9,7 +9,7 @@ from pyspark.streaming import StreamingContext
 
 if __name__ == "__main__":
     # Start k-means
-    dimensions = 25
+    dimensions = 10
     '''centers = [
         [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -40,18 +40,21 @@ if __name__ == "__main__":
     # start Spark Context
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
     sc = spark.sparkContext
-    ssc = StreamingContext(spark.sparkContext, 1)
+    ssc = StreamingContext(spark.sparkContext, 5)
 
     # load word embedding model
     sqlContext = SQLContext(sc)
-    # model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
-    # vector_model = model.rdd.collectAsMap()
-    vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
+    # vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
+    model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
+    vector_model = model.rdd.collectAsMap()
 
     # streaming and preprocessing
     tweets = TwitterStreamingModule.run(ssc)
     tweets_filtered = PreprocessingModule.run(tweets)
-    tweets_vectorized = VectorizingModule.run(tweets_filtered, vector_model, dimensions)
+
+    # breaking in time windows
+    tweets_windowed = tweets_filtered.window(1800, 60)
+    tweets_vectorized = VectorizingModule.run(tweets_windowed, vector_model, dimensions)
     tweets_vectorized.pprint()
 
     # Run K-Means
