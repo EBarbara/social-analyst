@@ -27,8 +27,9 @@ def average_word_vector(words, model, dimensions):
     word_count = 0
 
     for word in words:
-        if word in model:
-            vector += model[word]
+        word_vector = model.filter(model.word == word).select(model.vector)
+        if word_vector.count() == 1:
+            vector += word_vector.collect()[0]
             word_count += 1
 
     if word_count == 0:

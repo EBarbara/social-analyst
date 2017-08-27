@@ -9,8 +9,8 @@ from pyspark.streaming import StreamingContext
 
 if __name__ == "__main__":
     # Start k-means
-    dimensions = 10
-    centers = [
+    dimensions = 25
+    '''centers = [
         [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -35,30 +35,32 @@ if __name__ == "__main__":
     weights = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    k_means_model = StreamingKMeans(k=21).setInitialCenters(centers, weights)
+    k_means_model = StreamingKMeans(k=21).setInitialCenters(centers, weights)'''
 
     # start Spark Context
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
     sc = spark.sparkContext
     ssc = StreamingContext(spark.sparkContext, 1)
 
-    # load word2vec model
+    # load word embedding model
     sqlContext = SQLContext(sc)
-    model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
-    word2vec_model = model.rdd.collectAsMap()
+    # model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
+    # vector_model = model.rdd.collectAsMap()
+    vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
 
     # streaming and preprocessing
     tweets = TwitterStreamingModule.run(ssc)
     tweets_filtered = PreprocessingModule.run(tweets)
-    tweets_vectorized = VectorizingModule.run(tweets_filtered, word2vec_model, dimensions)
+    tweets_vectorized = VectorizingModule.run(tweets_filtered, vector_model, dimensions)
+    tweets_vectorized.pprint()
 
     # Run K-Means
-    tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
+    '''tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
     tweet_labelled = tweets_vectorized.map(lambda tweet: ((tweet[0], tweet[1], tweet[2], tweet[3], tweet[4]),
                                                           tweet[5].tolist()))
     k_means_model.trainOn(tweet_vectors)
     tweets_clustered = k_means_model.predictOnValues(tweet_labelled)
-    tweets_clustered.pprint()
+    tweets_clustered.pprint()'''
 
     ssc.start()
     ssc.awaitTermination()
