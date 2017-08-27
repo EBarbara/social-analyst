@@ -8,6 +8,7 @@ from pyspark.sql import SparkSession
 from pyspark.streaming import StreamingContext
 
 if __name__ == "__main__":
+    folder = "C:\\Users\\Estevan\\PycharmProjects\\Mining\\tweets"
     # Start k-means
     dimensions = 10
     '''centers = [
@@ -39,23 +40,24 @@ if __name__ == "__main__":
 
     # start Spark Context
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
-    sc = spark.sparkContext
+    '''sc = spark.sparkContext
     ssc = StreamingContext(spark.sparkContext, 5)
 
     # load word embedding model
     sqlContext = SQLContext(sc)
     # vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
-    model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
-    vector_model = model.rdd.collectAsMap()
+    # model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
+    # vector_model = model.rdd.collectAsMap()'''
 
-    # streaming and preprocessing
-    tweets = TwitterStreamingModule.run(ssc)
-    tweets_filtered = PreprocessingModule.run(tweets)
+    # streaming
+    tweets = TwitterStreamingModule.run(spark, folder)
 
     # breaking in time windows
-    tweets_windowed = tweets_filtered.window(1800, 60)
+    '''tweets_windowed = tweets_filtered.window(1800, 60)
+    tweets_filtered = PreprocessingModule.run(tweets)
     tweets_vectorized = VectorizingModule.run(tweets_windowed, vector_model, dimensions)
-    tweets_vectorized.pprint()
+    tweets_vectorized.pprint()'''
+
 
     # Run K-Means
     '''tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
@@ -65,5 +67,5 @@ if __name__ == "__main__":
     tweets_clustered = k_means_model.predictOnValues(tweet_labelled)
     tweets_clustered.pprint()'''
 
-    ssc.start()
-    ssc.awaitTermination()
+    query = tweets.writeStream.outputMode("append").format("console").start()
+    query.awaitTermination()
