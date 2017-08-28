@@ -9,33 +9,8 @@ from pyspark.streaming import StreamingContext
 
 if __name__ == "__main__":
     # Start k-means
-    dimensions = 25
-    '''centers = [
-        [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [-0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25]]
-    weights = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-               1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-               1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    k_means_model = StreamingKMeans(k=21).setInitialCenters(centers, weights)'''
+    dimensions = 10
+    k_means_model = StreamingKMeans(k=200).setRandomCenters(dimensions, 1.0, 1)
 
     # start Spark Context
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
@@ -44,23 +19,22 @@ if __name__ == "__main__":
 
     # load word embedding model
     sqlContext = SQLContext(sc)
-    # model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
-    # vector_model = model.rdd.collectAsMap()
-    vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
+    model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
+    vector_model = model.rdd.collectAsMap()
+    # vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
 
     # streaming and preprocessing
     tweets = TwitterStreamingModule.run(ssc)
     tweets_filtered = PreprocessingModule.run(tweets)
     tweets_vectorized = VectorizingModule.run(tweets_filtered, vector_model, dimensions)
-    tweets_vectorized.pprint()
 
     # Run K-Means
-    '''tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
+    tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
     tweet_labelled = tweets_vectorized.map(lambda tweet: ((tweet[0], tweet[1], tweet[2], tweet[3], tweet[4]),
                                                           tweet[5].tolist()))
     k_means_model.trainOn(tweet_vectors)
     tweets_clustered = k_means_model.predictOnValues(tweet_labelled)
-    tweets_clustered.pprint()'''
+    tweets_clustered.pprint()
 
     ssc.start()
     ssc.awaitTermination()
