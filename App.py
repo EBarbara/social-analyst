@@ -29,12 +29,13 @@ if __name__ == "__main__":
     tweets_vectorized = VectorizingModule.run(tweets_filtered, vector_model, dimensions)
 
     # Run K-Means
-    tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
-    tweet_labelled = tweets_vectorized.map(lambda tweet: ((tweet[0], tweet[1], tweet[2], tweet[3], tweet[4]),
-                                                          tweet[5].tolist()))
+    tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[6]))
+    tweet_labelled = tweets_vectorized.map(lambda tweet: ((tweet[0], tweet[1], tweet[2], tweet[3], tweet[4], tweet[5]),
+                                                          tweet[6]))
     k_means_model.trainOn(tweet_vectors)
     tweets_clustered = k_means_model.predictOnValues(tweet_labelled)
-    tweets_clustered.pprint()
+
+    # Each time window get cluster results and export data to json
 
     ssc.start()
     ssc.awaitTermination()

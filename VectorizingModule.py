@@ -17,9 +17,21 @@ class VectorizingModule:
 '''
 import numpy
 
+from pyspark.mllib.feature import HashingTF
+
 
 def load_word2vec():
     pass
+
+
+def sum_word_vector(words, model, dimensions):
+    vector = numpy.zeros(dimensions)
+
+    for word in words:
+        if word in model:
+            vector += model[word]
+
+    return vector
 
 
 def average_word_vector(words, model, dimensions):
@@ -42,5 +54,6 @@ def run(tweet_stream, model, dimensions):
                                                       tweet[2],
                                                       tweet[3],
                                                       tweet[4],
-                                                      average_word_vector(tweet[5], model, dimensions)))
+                                                      tweet[5],
+                                                      sum_word_vector(tweet[5], model, dimensions)))
     return vectorized_data

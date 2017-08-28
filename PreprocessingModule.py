@@ -12,24 +12,34 @@ class PreprocessingModule:
          return filtered
 '''
 import string
+from datetime import datetime
 
-from nltk import word_tokenize
+from nltk.tokenize.casual import TweetTokenizer
 from nltk.corpus import stopwords
 
 
-def tokenize_and_filter(text):
+def correct_timestamp(timestamp):
+    return datetime.strptime(timestamp, '%a %b %d %H:%M:%S +0000 %Y')
+
+
+def tokenize_and_remove_garbage(text):
+    tokenizer = TweetTokenizer(reduce_len=True)
+    tokenized = tokenizer.tokenize(text)
+
     stopwords_list = stopwords.words('english') + list(string.punctuation)
-    tokenized = word_tokenize(text.lower())
-    filtered = [i for i in tokenized if i not in stopwords_list]
-    return filtered
+    user_mentions = [word for word in tokenized if (word.startswith('@') and len(word) > 1)]
+    web_links = [word for word in tokenized if word.startswith('https://t.co/')]
+
+    reduced_tokens = [word for word in tokenized if word not in stopwords_list + user_mentions + web_links]
+
+    return reduced_tokens
 
 
 def run(tweet_stream):
-    filtered_stream = tweet_stream.map(lambda tweet: (tweet[0],
-                                                      tweet[1],
-                                                      tweet[2],
-                                                      tweet[3],
-                                                      tweet[4],
-                                                      tokenize_and_filter(tweet[4])))
-
-    return filtered_stream
+    tokenized_stream = tweet_stream.map(lambda tweet: (tweet[0],
+                                                       correct_timestamp(tweet[1]),
+                                                       tweet[2],
+                                                       tweet[3],
+                                                       tweet[4],
+                                                       tokenize_and_remove_garbage(tweet[4])))
+    return tokenized_stream
