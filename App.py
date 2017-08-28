@@ -1,3 +1,5 @@
+from collections import Counter
+
 import PreprocessingModule
 # import TwitterStreamingModule
 import TwitterStreamingFileModule as TwitterStreamingModule
@@ -7,10 +9,18 @@ from pyspark.mllib.clustering import StreamingKMeans
 from pyspark.sql import SparkSession
 from pyspark.streaming import StreamingContext
 
+
+def freqcount(terms_all):
+    count_all = Counter()
+    count_all.update(terms_all)
+    return count_all.most_common(5)
+
+
 if __name__ == "__main__":
     # Start k-means
     dimensions = 10
-    k_means_model = StreamingKMeans(k=200).setRandomCenters(dimensions, 1.0, 1)
+    clusters = 20
+    k_means_model = StreamingKMeans(k=clusters).setRandomCenters(dimensions, 1.0, 1)
 
     # start Spark Context
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
@@ -21,7 +31,6 @@ if __name__ == "__main__":
     sqlContext = SQLContext(sc)
     model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
     vector_model = model.rdd.collectAsMap()
-    # vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
 
     # streaming and preprocessing
     tweets = TwitterStreamingModule.run(ssc)
@@ -35,7 +44,9 @@ if __name__ == "__main__":
     k_means_model.trainOn(tweet_vectors)
     tweets_clustered = k_means_model.predictOnValues(tweet_labelled)
 
-    # Each time window get cluster results and export data to json
+    topic = tweets_clustered.map(lambda tweet: (tweet[1], tweet[0][5])).reduceByKey(lambda curr, next: curr + next)
+    topic.pprint()
+    #topic.map(lambda x: (x[0], freqcount(x[1]))).pprint()
 
     ssc.start()
     ssc.awaitTermination()
