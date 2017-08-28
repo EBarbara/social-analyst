@@ -1,16 +1,18 @@
-import PreprocessingModule
 # import TwitterStreamingModule
 import TwitterStreamingFileModule as TwitterStreamingModule
-import VectorizingModule
-from pyspark import SQLContext
-from pyspark.mllib.clustering import StreamingKMeans
+from PreprocessingModule import PreprocessingModule
+from VectorizingModule import VectorizingModule
 from pyspark.sql import SparkSession
-from pyspark.streaming import StreamingContext
 
 if __name__ == "__main__":
-    folder = "C:\\Users\\Estevan\\PycharmProjects\\Mining\\tweets"
-    # Start k-means
+    # initializations
+    spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
     dimensions = 10
+    folder = "C:\\Users\\Estevan\\PycharmProjects\\Mining\\tweets"
+    preprocessingModule = PreprocessingModule(inputCol="text", outputCol="words")
+    vectorizingModule = VectorizingModule(inputCol="words", outputCol="vector", dimensions=dimensions)
+
+    # Start k-means
     '''centers = [
         [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -38,26 +40,10 @@ if __name__ == "__main__":
                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
     k_means_model = StreamingKMeans(k=21).setInitialCenters(centers, weights)'''
 
-    # start Spark Context
-    spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
-    '''sc = spark.sparkContext
-    ssc = StreamingContext(spark.sparkContext, 5)
-
-    # load word embedding model
-    sqlContext = SQLContext(sc)
-    # vector_model = sqlContext.read.parquet("training_data/trained_glove_model")
-    # model = sqlContext.read.parquet("training_data/trained_word2vec_model/data")
-    # vector_model = model.rdd.collectAsMap()'''
-
-    # streaming
+    # streaming, preprocessing and vectorizing
     tweets = TwitterStreamingModule.run(spark, folder)
-
-    # breaking in time windows
-    '''tweets_windowed = tweets_filtered.window(1800, 60)
-    tweets_filtered = PreprocessingModule.run(tweets)
-    tweets_vectorized = VectorizingModule.run(tweets_windowed, vector_model, dimensions)
-    tweets_vectorized.pprint()'''
-
+    tweets_filtered = preprocessingModule.run(tweets)
+    tweets_vectorized = vectorizingModule.run(tweets_filtered)
 
     # Run K-Means
     '''tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
@@ -67,5 +53,5 @@ if __name__ == "__main__":
     tweets_clustered = k_means_model.predictOnValues(tweet_labelled)
     tweets_clustered.pprint()'''
 
-    query = tweets.writeStream.outputMode("append").format("console").start()
+    query = tweets_vectorized.writeStream.outputMode("append").format("console").start()
     query.awaitTermination()
