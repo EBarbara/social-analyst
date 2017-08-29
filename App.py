@@ -2,6 +2,7 @@
 import TwitterStreamingFileModule as TwitterStreamingModule
 from PreprocessingModule import PreprocessingModule
 from VectorizingModule import VectorizingModule
+from pyspark.ml.classification import NaiveBayes, NaiveBayesModel
 from pyspark.sql import SparkSession
 
 if __name__ == "__main__":
@@ -10,48 +11,17 @@ if __name__ == "__main__":
     dimensions = 10
     folder = "C:\\Users\\Estevan\\PycharmProjects\\Mining\\tweets"
     preprocessingModule = PreprocessingModule(inputCol="text", outputCol="words")
-    vectorizingModule = VectorizingModule(inputCol="words", outputCol="vector", dimensions=dimensions)
-
-    # Start k-means
-    '''centers = [
-        [0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.25],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [-0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25, 0.0],
-        [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -0.25]]
-    weights = [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-               1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-               1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    k_means_model = StreamingKMeans(k=21).setInitialCenters(centers, weights)'''
+    vectorizingModule = VectorizingModule(inputCol="words", outputCol="features", dimensions=dimensions)
 
     # streaming, preprocessing and vectorizing
     tweets = TwitterStreamingModule.run(spark, folder)
-    tweets_filtered = preprocessingModule.run(tweets)
-    tweets_vectorized = vectorizingModule.run(tweets_filtered)
+    tweets_filtered = preprocessingModule.run(tweets).drop("tokens")
+    tweets_vectorized = vectorizingModule.run(tweets_filtered).drop("words")
 
-    # Run K-Means
-    '''tweet_vectors = tweets_vectorized.map(lambda tweet: (tweet[5].tolist()))
-    tweet_labelled = tweets_vectorized.map(lambda tweet: ((tweet[0], tweet[1], tweet[2], tweet[3], tweet[4]),
-                                                          tweet[5].tolist()))
-    k_means_model.trainOn(tweet_vectors)
-    tweets_clustered = k_means_model.predictOnValues(tweet_labelled)
-    tweets_clustered.pprint()'''
+    nb = NaiveBayes(smoothing=1.0, modelType="multinomial", featuresCol="features")
+    nb_model = NaiveBayesModel.load("training_data/trained_naive_bayes_model")
+    tweets_classified = nb_model.transform(tweets_vectorized).drop("rawPrediction", "probability", "features")
+    tweets_final = tweets_classified.select("*").where("prediction != 0.0")
 
-    query = tweets_vectorized.writeStream.outputMode("append").format("console").start()
+    query = tweets_final.writeStream.outputMode("append").format("console").start()
     query.awaitTermination()

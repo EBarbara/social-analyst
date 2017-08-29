@@ -1,22 +1,25 @@
-import PreprocessingModule
-import TwitterStreamingModule
-import VectorizingModule
-from pyspark.mllib.linalg import Vectors
+from PreprocessingModule import PreprocessingModule
+from VectorizingModule import VectorizingModule
+from pyspark.ml.classification import NaiveBayes
+from pyspark.sql import SparkSession
+from pyspark.sql.types import StructType, StructField, StringType, NumericType, LongType
 
+if __name__ == "__main__":
+    spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
 
-def run(spark_context, streaming_context, training_file, word2vec_model, dimensions):
-    lines = spark_context.textFile(training_file)
-    training_raw = lines.map(lambda line: TwitterStreamingModule.extract_json(line)) \
-        .filter(lambda json: json is not None) \
-        .map(lambda json: (json["id"],
-                           json["created_at"],
-                           TwitterStreamingModule.extract_coordinates(json["coordinates"], json["place"])[0],
-                           TwitterStreamingModule.extract_coordinates(json["coordinates"], json["place"])[1],
-                           json["text"])) \
-        .filter(lambda tweet: tweet[2] != 0 or tweet[3] != 0)
-    training_queue = [training_raw]
-    training_stream = streaming_context.queueStream(training_queue)
-    training_filtered = PreprocessingModule.run(training_stream)
-    training_vectorized = VectorizingModule.run(training_filtered, word2vec_model, dimensions)
-    training_data = training_vectorized.map(lambda tweet: (Vectors.dense(tweet[5].tolist())))
-    return training_data
+    dimensions = 10
+    preprocessingModule = PreprocessingModule(inputCol="text", outputCol="words")
+    vectorizingModule = VectorizingModule(inputCol="words", outputCol="features", dimensions=dimensions)
+    nb = NaiveBayes(smoothing=1.0, modelType="multinomial", featuresCol="features", labelCol="label")
+
+    model_schema = StructType([StructField("label", LongType(), True),
+                               StructField("text", StringType(), True)])
+
+    model_raw_dataframe = spark.read.format("csv")\
+        .option("sep", ";")\
+        .schema(model_schema)\
+        .load("training_data/Training_bayes.csv")
+    model_filtered = preprocessingModule.run(model_raw_dataframe)
+    model_vectorized = vectorizingModule.tf(model_filtered)
+    model = nb.fit(model_vectorized)
+    model.save("training_data/trained_naive_bayes_model")
