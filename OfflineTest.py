@@ -15,16 +15,18 @@ if __name__ == "__main__":
 
     tokenizer = Tokenizer(inputCol="text", outputCol="tokens")
     stopword_remover = StopWordsRemover(inputCol="tokens", outputCol="words")
-    hashing_tf = HashingTF(numFeatures=5000, inputCol="words", outputCol="rawFeatures")
-    idf = IDF(inputCol="rawFeatures", outputCol="features")
+    # hashing_tf = HashingTF(numFeatures=5000, inputCol="words", outputCol="rawFeatures")
+    # idf = IDF(inputCol="rawFeatures", outputCol="features")
+    hashing_tf = HashingTF(numFeatures=5000, inputCol="words", outputCol="features")
 
     # streaming, preprocessing and vectorizing
     tweets = spark.read.format("csv").option("sep", ";").schema(schema).load("tweets/tweet.csv")
     tweets_tokenized = tokenizer.transform(tweets)
     tweets_filtered = stopword_remover.transform(tweets_tokenized).drop("tokens")
-    tweets_hashed = hashing_tf.transform(tweets_filtered)
-    idf_model = idf.fit(tweets_hashed)
-    tweets_vectorized = idf_model.transform(tweets_hashed).drop("rawFeatures")
+    # tweets_hashed = hashing_tf.transform(tweets_filtered)
+    # idf_model = idf.fit(tweets_hashed)
+    # tweets_vectorized = idf_model.transform(tweets_hashed).drop("rawFeatures")
+    tweets_vectorized = hashing_tf.transform(tweets_filtered)
     tweets_vectorized.show()
 
     kmeans = KMeans(featuresCol="features", k=50, seed=1)

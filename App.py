@@ -28,7 +28,7 @@ if __name__ == "__main__":
     # clustering
     kmeans = KMeans(featuresCol="features", k=50, seed=1)
     k_model = kmeans.fit(tweets_vectorized)
-    k_model.
+    # k_model.
 
     # sinking
     '''query = tweets_final.writeStream.\
