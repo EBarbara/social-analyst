@@ -3,6 +3,7 @@ import TwitterStreamingFileModule as TwitterStreamingModule
 from PreprocessingModule import PreprocessingModule
 from VectorizingModule import VectorizingModule
 from pyspark.ml.classification import NaiveBayes, NaiveBayesModel
+from pyspark.ml.clustering import KMeans
 from pyspark.sql import SparkSession
 
 if __name__ == "__main__":
@@ -25,13 +26,16 @@ if __name__ == "__main__":
     # tweets_final = tweets_classified.select("*").where("prediction != 0.0")
 
     # clustering
-
+    kmeans = KMeans(featuresCol="features", k=50, seed=1)
+    k_model = kmeans.fit(tweets_vectorized)
+    k_model.
 
     # sinking
-    query = tweets_final.writeStream.\
+    '''query = tweets_final.writeStream.\
         outputMode("append").\
         format("json").\
         option("path", "classified_data").\
         option("checkpointLocation", "data_checkpoint").\
-        start()
+        start()'''
+    query = tweets_final.writeStream.outputMode("append").format("console").start()
     query.awaitTermination()
