@@ -9,7 +9,7 @@ if __name__ == "__main__":
     # initializations
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
     dimensions = 10
-    folder = "C:/tweets"
+    folder = "tweets"
     preprocessingModule = PreprocessingModule(inputCol="text", outputCol="words")
     vectorizingModule = VectorizingModule(inputCol="words", outputCol="features", dimensions=dimensions)
 
@@ -19,10 +19,13 @@ if __name__ == "__main__":
     tweets_vectorized = vectorizingModule.run(tweets_filtered).drop("words")
 
     # classifying
-    nb = NaiveBayes(smoothing=1.0, modelType="multinomial", featuresCol="features")
-    nb_model = NaiveBayesModel.load("training_data/trained_naive_bayes_model")
-    tweets_classified = nb_model.transform(tweets_vectorized).drop("rawPrediction", "probability", "features")
-    tweets_final = tweets_classified.select("*").where("prediction != 0.0")
+    # nb = NaiveBayes(smoothing=1.0, modelType="multinomial", featuresCol="features")
+    # nb_model = NaiveBayesModel.load("training_data/trained_naive_bayes_model")
+    # tweets_classified = nb_model.transform(tweets_vectorized).drop("rawPrediction", "probability", "features")
+    # tweets_final = tweets_classified.select("*").where("prediction != 0.0")
+
+    # clustering
+
 
     # sinking
     query = tweets_final.writeStream.\
