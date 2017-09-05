@@ -23,7 +23,7 @@ except KeyError:
     sys.stderr.write("TWITTER_* environment variables not set\n")
     sys.exit(1)
 
-new_york = [-74.44, 40.23, -73.44, 41.23]
+northeast_usa = [-74.44, 40.23, -73.44, 41.23]
 united_kingdom = [-10.85, 49.82, 2.02, 59.48]
 grande_rio = [-23.08, -43.79, -22.77, -43.13]
 brasil = [-75.11, -53.35, 5.70, -33.92]
@@ -79,6 +79,7 @@ class StdOutListener(StreamListener):
                 tweet_json = json.loads(html.unescape(data))
                 tweet = preprocessing(tweet_json)
                 tweet_id = str(tweet[0])
+                # with open("tweets/tweet.csv", 'a', encoding='utf-8') as csv_file:
                 with open("tweets/tweet" + tweet_id + ".csv", 'a', encoding='utf-8') as csv_file:
                     field_names = ['id', 'time', 'latitude', 'longitude', 'text']
                     writer = csv.DictWriter(csv_file, delimiter=';', lineterminator='\n', fieldnames=field_names)
@@ -97,8 +98,8 @@ class StdOutListener(StreamListener):
 
 
 if __name__ == '__main__':
-    l = StdOutListener(False)
+    listener = StdOutListener(False)
     auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
-    stream = Stream(auth, l)
-    stream.filter(languages=['en'], locations=new_york)
+    stream = Stream(auth, listener)
+    stream.filter(languages=['en'], locations=northeast_usa + united_kingdom)
