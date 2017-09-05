@@ -1,5 +1,5 @@
 from pyspark.ml.clustering import KMeans
-from pyspark.ml.feature import Tokenizer, StopWordsRemover, HashingTF, IDF
+from pyspark.ml.feature import Tokenizer, StopWordsRemover, HashingTF
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, LongType, FloatType, TimestampType, StringType
 

@@ -3,7 +3,6 @@ import TwitterStreamingFileModule as TwitterStreamingModule
 from PreprocessingModule import PreprocessingModule
 from VectorizingModule import VectorizingModule
 from pyspark.ml.classification import NaiveBayes, NaiveBayesModel
-from pyspark.ml.clustering import KMeans
 from pyspark.sql import SparkSession
 
 if __name__ == "__main__":
@@ -20,22 +19,17 @@ if __name__ == "__main__":
     tweets_vectorized = vectorizingModule.run(tweets_filtered).drop("words")
 
     # classifying
-    # nb = NaiveBayes(smoothing=1.0, modelType="multinomial", featuresCol="features")
-    # nb_model = NaiveBayesModel.load("training_data/trained_naive_bayes_model")
-    # tweets_classified = nb_model.transform(tweets_vectorized).drop("rawPrediction", "probability", "features")
-    # tweets_final = tweets_classified.select("*").where("prediction != 0.0")
-
-    # clustering
-    kmeans = KMeans(featuresCol="features", k=50, seed=1)
-    k_model = kmeans.fit(tweets_vectorized)
-    # k_model.
+    nb = NaiveBayes(smoothing=1.0, modelType="multinomial", featuresCol="features")
+    nb_model = NaiveBayesModel.load("training_data/trained_naive_bayes_model")
+    tweets_classified = nb_model.transform(tweets_vectorized).drop("rawPrediction", "probability", "features")
+    tweets_final = tweets_classified.select("*").where("prediction != 0.0")
 
     # sinking
-    '''query = tweets_final.writeStream.\
+    query = tweets_final.writeStream.\
         outputMode("append").\
         format("json").\
         option("path", "classified_data").\
         option("checkpointLocation", "data_checkpoint").\
-        start()'''
-    query = tweets_final.writeStream.outputMode("append").format("console").start()
+        start()
+    # query = tweets_final.writeStream.outputMode("append").format("console").start()
     query.awaitTermination()
