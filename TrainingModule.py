@@ -2,7 +2,7 @@ from PreprocessingModule import PreprocessingModule
 from VectorizingModule import VectorizingModule
 from pyspark.ml.classification import NaiveBayes
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, NumericType, LongType
+from pyspark.sql.types import StructType, StructField, StringType, LongType
 
 if __name__ == "__main__":
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
@@ -20,6 +20,6 @@ if __name__ == "__main__":
         .schema(model_schema)\
         .load("training_data/Training_bayes.csv")
     model_filtered = preprocessingModule.run(model_raw_dataframe)
-    model_vectorized = vectorizingModule.tf(model_filtered)
+    model_vectorized = vectorizingModule.run(model_filtered)
     model = nb.fit(model_vectorized)
     model.save("training_data/trained_naive_bayes_model")
