@@ -1,8 +1,8 @@
-from pyspark.ml.feature import Word2VecModel, Word2Vec, HashingTF
+from pyspark.ml.feature import HashingTF
 
 
 class VectorizingModule:
-    def __init__(self, inputCol, outputCol, dimensions):
+    def __init__(self, inputCol, outputCol):
         self.hashing_tf = HashingTF(numFeatures=5000, inputCol=inputCol, outputCol=outputCol)
 
     def run(self, data_frame):

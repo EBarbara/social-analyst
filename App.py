@@ -8,10 +8,9 @@ from pyspark.sql import SparkSession
 if __name__ == "__main__":
     # initializations
     spark = SparkSession.builder.appName("SocialAnalyst").getOrCreate()
-    dimensions = 10
     folder = "tweets"
     preprocessingModule = PreprocessingModule(inputCol="text", outputCol="words")
-    vectorizingModule = VectorizingModule(inputCol="words", outputCol="features", dimensions=dimensions)
+    vectorizingModule = VectorizingModule(inputCol="words", outputCol="features")
 
     # streaming, preprocessing and vectorizing
     tweets = TwitterStreamingModule.run(spark, folder)
