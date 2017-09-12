@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+	<title>Social Analyst - Leaflet</title>
+
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+	<link rel="shortcut icon" type="image/x-icon" href="images/favicon.ico" />
+    <link rel="stylesheet" href="css/leaflet.css" />
+
+    <script src="js/jquery-3.2.1.js"></script>
+    <script src="js/leaflet-src.js"></script>
+	<script type="text/javascript" src="js/leaflet-ajax/leaflet.ajax.js"></script>	
+	<script src="js/leaflet-maki/Leaflet.MakiMarkers.js"></script>
+	<script>
+		function classify(prediction) {
+			switch(prediction) {
+			    case 1: return "Entertainment";
+			    case 2: return "Politics";
+			    case 3: return "Technology";
+			    case 4: return "Traffic";
+			    case 5: return "Work";
+			    case 6: return "Crime or Terrorism";
+			    case 7: return "Weather or Disaster";
+			    default: return "Unknown";
+			}
+		}
+
+		function get_icon(prediction) {
+			switch(prediction) {
+			    case 1: return L.MakiMarkers.icon({icon: "theatre", color: "#00f", size: "m"});
+			    case 2: return L.MakiMarkers.icon({icon: "town-hall", color: "#f0f", size: "m"});
+			    case 3: return L.MakiMarkers.icon({icon: "telephone", color: "#ff0", size: "m"});
+			    case 4: return L.MakiMarkers.icon({icon: "car", color: "#0ff", size: "m"});
+			    case 5: return L.MakiMarkers.icon({icon: "suitcase", color: "#aa6", size: "m"});
+			    case 6: return L.MakiMarkers.icon({icon: "fire-station", color: "#f00", size: "m"});
+			    case 7: return L.MakiMarkers.icon({icon: "wetland", color: "#b22", size: "m"});
+			    default: return L.MakiMarkers.icon({icon: "rocket", color: "#b0b", size: "m"});
+			}
+		}
+
+		function setParent(el, newParent){
+    		newParent.appendChild(el);
+ 		}
+	</script>
+
+	<style>
+		.leaflet-control {
+    		float: left;
+    		clear: none;
+		}
+	</style>
+</head>
+<body>
+
+<div style="width: 2200px; overflow: hidden;">
+	<div id="mapid" style="width: 1500px; height: 1000px; float: left;"></div>
+	<div id="side_div" style="width: 600px; margin-left: 1600px; overflow: visible;">
+		<div id="age_select_div" style="padding: 10px;">
+			<form name="age_form">
+				<input type="radio" name="age" value="1_min"> 1 minute <br>
+				<input type="radio" name="age" value="10_min"> 10 minutes<br>
+				<input type="radio" name="age" value="30_min"> 30 minutes<br>
+				<input type="radio" name="age" value="1_hour"> 1 hour<br>
+				<input type="radio" name="age" value="all" checked="checked"> all tweets
+			</form>
+		</div>
+		<div id="legend_div"></div>
+	</div>
+</div>
+
+<script>
+	var tweet_age = "all";
+
+	var age_radio = document.forms['age_form'].elements['age'];
+	for (var i=0, len=age_radio.length; i<len; i++) {
+		age_radio[i].onchange = function() {
+			tweet_age = this.value;
+			geojsonLayer.refresh(["data.php?age=" + tweet_age]);
+		};
+	}
+
+	var mapbox_token = "pk.eyJ1IjoiZWJhcmJhcmEiLCJhIjoiY2oyZjQ1cmN3MDZqZjMzb2d0dzRkOHRudSJ9.I2jqhZ1-JPkOfe1NdT08_w";
+	var mymap = L.map('mapid').setView([40.73, -73.94], 9);
+	L.MakiMarkers.accessToken = mapbox_token;
+
+	var legend = L.control({position: 'topright'});
+
+	legend.onAdd = function (map) {
+	    var div = L.DomUtil.create('div', 'legend');
+	    div.innerHTML +=  '<img src="css/images/entertainment.png">'  + '     Entertainment' + '<br>'
+	    div.innerHTML +=  '<img src="css/images/politics.png">'       + '     Politics' + '<br>'
+	    div.innerHTML +=  '<img src="css/images/technology.png">'     + '     Technology' + '<br>'
+	    div.innerHTML +=  '<img src="css/images/traffic.png">'        + '     Traffic' + '<br>'
+	    div.innerHTML +=  '<img src="css/images/work.png">'           + '     Work' + '<br>'
+	    div.innerHTML +=  '<img src="css/images/crime.png">'          + '     Crime or Terrorism' + '<br>'
+	    div.innerHTML +=  '<img src="css/images/weather.png">'        + '     Weather or Disaster' + '<br>'
+	    div.innerHTML +=  '<img src="css/images/unknown.png">'        + '     Unknown' + '<br>'
+	    return div;
+	};
+
+	legend.addTo(mymap);
+
+	var htmlObject = legend.getContainer();
+	htmlObject.style.clear = "";
+ 	var a = document.getElementById('legend_div');
+ 	setParent(htmlObject, a);
+
+	L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=' + mapbox_token, {
+		maxZoom: 18,
+		attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+			'<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+			'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+		id: 'mapbox.streets'
+	}).addTo(mymap);
+
+	var geojsonLayer = new L.GeoJSON.AJAX("data.php?age=" + tweet_age, {
+		pointToLayer: function(feature, latlng){
+			var icon = get_icon(feature.properties.prediction);
+			return L.marker(latlng, {icon: icon});
+		},
+		onEachFeature: function (feature, layer) {
+			var list = "<dl>" 
+           		+ "<dt>Class</dt>" + "<dd>" + classify(feature.properties.prediction) + "</dd>"
+				+ "<dt>Id</dt>" + "<dd>" + feature.properties.id + "</dd>"
+           		+ "<dt>Time</dt>" + "<dd>" + feature.properties.time + "</dd>"
+           		+ "<dt>Text</dt>" + "<dd>" + feature.properties.text + "</dd>"
+           		+ "</dl>"
+			layer.bindPopup(list);
+		}
+	}).addTo(mymap);
+
+	window.setInterval(function(){
+		geojsonLayer.refresh(["data.php?age=" + tweet_age]);
+	}, 5000);
+</script>
+
+
+
+</body>
+</html>
