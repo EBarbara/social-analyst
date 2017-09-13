@@ -4,7 +4,7 @@ Um projeto de detecção e classificação de eventos em redes sociais.
 Trabalho das matérias Tópicos Especiais em Bancos de Dados e Busca e Recuperação de Informações
 
 Instruções:
-> O projeto está todo em python 3, php 5 e javascript.
+> O projeto está todo em python 3, php 7 e javascript.
 
 >Captura de tweets
 >>Necessário instalar as bibliotecas tweepy e python-dotenv<br>
