@@ -79,8 +79,8 @@ class StdOutListener(StreamListener):
                 tweet_json = json.loads(html.unescape(data))
                 tweet = preprocessing(tweet_json)
                 tweet_id = str(tweet[0])
-                # with open("tweets/tweet.csv", 'a', encoding='utf-8') as csv_file:
-                with open("tweets/tweet" + tweet_id + ".csv", 'a', encoding='utf-8') as csv_file:
+                with open("tweets/tweet.csv", 'a', encoding='utf-8') as csv_file:
+                # with open("tweets/tweet" + tweet_id + ".csv", 'a', encoding='utf-8') as csv_file:
                     field_names = ['id', 'time', 'latitude', 'longitude', 'text']
                     writer = csv.DictWriter(csv_file, delimiter=';', lineterminator='\n', fieldnames=field_names)
                     writer.writerow({'id': tweet[0],
